@@ -1,0 +1,222 @@
+Your task is to generate Python functions with the following requirements:
+1. **Type Annotations**: All functions must include type annotations for arguments and return values.
+2. **Error Handling**: Each function should handle potential errors gracefully using appropriate exception handling.
+3. **Documentation**: Each function must be well-documented, including a docstring that explains:
+   - The purpose of the function
+   - Arguments: their names, types, and descriptions
+   - Return value: its type and description
+   - Potential exceptions that the function may raise
+
+### Guidelines
+1. Ensure all functions are designed to be clear and concise.
+2. Use Python's built-in exception classes for error handling.
+3. Ensure that the docstring format adheres to PEP 257 standards.
+
+### Example Functions
+
+#### Example 1: Division Function
+
+**Function Name**: `divide_numbers`  
+**Functionality**: Divides the numerator by the denominator.
+
+```python
+def divide_numbers(numerator: float, denominator: float) -> float:
+    """
+    Divides the numerator by the denominator.
+
+    Args:
+        numerator (float): The number to be divided.
+        denominator (float): The number to divide by.
+
+    Returns:
+        float: The result of the division.
+
+    Raises:
+        ValueError: If the denominator is zero.
+    """
+    try:
+        if denominator == 0:
+            raise ValueError("The denominator cannot be zero.")
+        return numerator / denominator
+    except ValueError as e:
+        print(f"Error: {e}")
+        raise
+```
+
+#### Example 2: Summing a List
+
+**Function Name**: `sum_list`  
+**Functionality**: Sums all the numbers in a given list.
+
+```python
+from typing import List
+
+def sum_list(numbers: List[float]) -> float:
+    """
+    Sums all the numbers in a given list.
+
+    Args:
+        numbers (List[float]): A list of numbers to sum.
+
+    Returns:
+        float: The sum of all numbers in the list.
+
+    Raises:
+        TypeError: If any element in the list is not a number.
+    """
+    try:
+        return sum(numbers)
+    except TypeError as e:
+        print(f"Error: {e}")
+        raise
+```
+
+#### Example 3: Reading a File
+
+**Function Name**: `read_file`  
+**Functionality**: Reads the content of a file and returns it as a string.
+
+```python
+def read_file(file_path: str) -> str:
+    """
+    Reads the content of a file and returns it as a string.
+
+    Args:
+        file_path (str): The path to the file to read.
+
+    Returns:
+        str: The content of the file.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        IOError: If there is an error reading the file.
+    """
+    try:
+        with open(file_path, 'r') as file:
+            return file.read()
+    except FileNotFoundError as e:
+        print(f"Error: {e}")
+        raise
+    except IOError as e:
+        print(f"Error: {e}")
+        raise
+```
+
+#### Example 4: Converting a String to an Integer
+
+**Function Name**: `string_to_int`  
+**Functionality**: Converts a string to an integer.
+
+```python
+def string_to_int(value: str) -> int:
+    """
+    Converts a string to an integer.
+
+    Args:
+        value (str): The string to convert.
+
+    Returns:
+        int: The integer value of the string.
+
+    Raises:
+        ValueError: If the string cannot be converted to an integer.
+    """
+    try:
+        return int(value)
+    except ValueError as e:
+        print(f"Error: {e}")
+        raise
+```
+
+#### Example 5: Fetching Data from a URL
+
+**Function Name**: `fetch_data`  
+**Functionality**: Fetches data from a given URL and returns it as a string.
+
+```python
+import requests
+
+def fetch_data(url: str) -> str:
+    """
+    Fetches data from a given URL and returns it as a string.
+
+    Args:
+        url (str): The URL to fetch data from.
+
+    Returns:
+        str: The data fetched from the URL.
+
+    Raises:
+        requests.exceptions.RequestException: If there is an error with the request.
+    """
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.text
+    except requests.exceptions.RequestException as e:
+        print(f"Error: {e}")
+        raise
+```
+
+#### Example 6: Calculating Factorial
+
+**Function Name**: `calculate_factorial`  
+**Functionality**: Calculates the factorial of a given non-negative integer.
+
+```python
+def calculate_factorial(n: int) -> int:
+    """
+    Calculates the factorial of a given non-negative integer.
+
+    Args:
+        n (int): The non-negative integer to calculate the factorial of.
+
+    Returns:
+        int: The factorial of the given number.
+
+    Raises:
+        ValueError: If the input is a negative integer.
+    """
+    try:
+        if n < 0:
+            raise ValueError("Input must be a non-negative integer.")
+        factorial = 1
+        for i in range(1, n + 1):
+            factorial *= i
+        return factorial
+    except ValueError as e:
+        print(f"Error: {e}")
+        raise
+```
+
+### Create a Python function following these requirements:
+
+**Function Name**: `find_max`
+**Functionality**: Finds the maximum value in a list of numbers.
+
+```python
+from typing import List
+
+def find_max(numbers: List[float]) -> float:
+    """
+    Finds the maximum value in a list of numbers.
+
+    Args:
+        numbers (List[float]): A list of numbers to find the maximum value from.
+
+    Returns:
+        float: The maximum value in the list.
+
+    Raises:
+        ValueError: If the list is empty.
+    """
+    try:
+        if not numbers:
+            raise ValueError("The list cannot be empty.")
+        return max(numbers)
+    except ValueError as e:
+        print(f"Error: {e}")
+        raise
+```
+
+By following the above examples and guidelines, you can create well-structured, type-annotated, and well-documented Python functions with appropriate error handling.
