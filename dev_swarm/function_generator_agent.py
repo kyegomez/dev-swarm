@@ -3,6 +3,7 @@ from dev_swarm.prompts import FUNCTION_GENERATOR_PROMPT
 from swarms import Agent
 from loguru import logger
 import os
+from swarms import extract_code_from_markdown
 
 
 class FunctionGeneratorAgent(Agent):
@@ -96,6 +97,7 @@ class FunctionGeneratorAgent(Agent):
             f"Running FunctionGeneratorAgent for task: {task}"
         )
         output = super().run(task, *args, **kwargs)
+        output = extract_code_from_markdown(output)
         logger.debug(f"Generated output: {output}")
         file_path = self.create_file(output, folder_path, file_name)
         return file_path
