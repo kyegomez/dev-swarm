@@ -1,13 +1,11 @@
-import inspect
 import os
 import re
-import threading
 from dotenv import load_dotenv
 from loguru import logger
 from swarms import Agent
-from typing import List, Any
 from dev_swarm.documentor_agent import model
 from dev_swarm.prompts import TEST_WRITER_SOP_PROMPT
+from dev_swarm.utils import create_file
 
 load_dotenv()
 # Ensure the log directory exists
@@ -62,7 +60,6 @@ class TesterAgent(Agent):
 
     def __init__(
         self,
-        items: List[Any],
         agent_name: str = "TesterAgent",
         llm=model,
         max_loops: int = 1,
@@ -71,10 +68,14 @@ class TesterAgent(Agent):
         *args,
         **kwargs,
     ):
-        super().__init__(
-            agent_name, llm=llm, max_loops=max_loops, *args, **kwargs
+        super(TesterAgent, self).__init__(
+            agent_name=agent_name,
+            llm=model,
+            max_loops=max_loops,
+            streaming_on=True,
+            *args,
+            **kwargs,
         )
-        self.items = items
         self.module = module
         self.agent_name = agent_name
         self.max_loops = max_loops
@@ -90,98 +91,15 @@ class TesterAgent(Agent):
             **kwargs: Arbitrary keyword arguments.
 
         """
-        logger.info(f"Running TesterAgent for task: {task}")
-
-        def process_item(item):
-            try:
-                prompt = self.fetch_docs(item)
-                logger.debug(
-                    f"Fetched docs for item: {item.__name__}"
-                )
-
-                processed_content = super().run(
-                    TEST_WRITER_SOP_PROMPT(
-                        prompt, self.module, *args, **kwargs
-                    )
-                )
-                logger.debug(
-                    f"Processed content for item: {item.__name__}"
-                )
-
-                processed_content = extract_code_from_markdown(
-                    processed_content
-                )
-                test_content = (
-                    f"# {item.__name__}\n\n{processed_content}\n"
-                )
-                file_path = self.create_file(item, test_content)
-                logger.info(
-                    f"Test created for item: {item.__name__} at {file_path}"
-                )
-
-            except Exception as e:
-                logger.error(
-                    f"Error processing item {item.__name__}: {e}"
-                )
-
-        threads = []
-        for item in self.items:
-            thread = threading.Thread(
-                target=process_item, args=(item,)
-            )
-            threads.append(thread)
-            thread.start()
-
-        for thread in threads:
-            thread.join()
-
-    def fetch_docs(self, item):
-        """
-        Fetches the documentation and source code for the specified item.
-
-        Args:
-            item: The item to fetch the documentation and source code for.
-
-        Returns:
-            str: The fetched documentation and source code.
-
-        """
-        doc = inspect.getdoc(item)
-        source = inspect.getsource(item)
-        is_class = inspect.isclass(item)
-        item_type = (
-            "Class"
-            if is_class
-            else "Function" if inspect.isfunction(item) else "Item"
+        response = super().run(
+            TEST_WRITER_SOP_PROMPT(task, self.module, *args, **kwargs)
         )
-        input_content = f"{item_type} Name: {item.__name__}\n\nDocumentation:\n{doc}\n\nSource Code:\n{source}"
-        logger.debug(
-            f"Input content created for item: {item.__name__}"
-        )
-        return input_content
+        processed_content = extract_code_from_markdown(response)
+        test_content = f"{processed_content}\n"
+        file_path = create_file(self.module, test_content, ".py")
+        logger.info(f"Test created for item: at {file_path}")
 
-    def create_file(self, item, content: str = None):
-        """
-        Creates a test file for the specified item.
-
-        Args:
-            item: The item to create the test file for.
-            content (str, optional): The content of the test file. Defaults to None.
-
-        Returns:
-            str: The file path of the created test file.
-
-        """
-        os.makedirs(self.tests_folder_path, exist_ok=True)
-        file_path = os.path.join(
-            self.tests_folder_path, f"{item.__name__.lower()}.py"
-        )
-        with open(file_path, "w") as file:
-            file.write(content)
-        logger.debug(
-            f"File created at {file_path} for item: {item.__name__}"
-        )
-        return file_path
+        return processed_content
 
 
 # def main(module: str = "tests/memory"):

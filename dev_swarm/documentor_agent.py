@@ -1,13 +1,12 @@
 from swarms import Agent
-import inspect
 import os
-import threading
 
 from dotenv import load_dotenv
 from swarms import OpenAIChat
 from dev_swarm.prompts import DOCUMENTATION_WRITER_SOP
-from typing import List, Any
 from loguru import logger
+from swarms.utils.loguru_logger import logger
+from dev_swarm.utils import create_file
 
 load_dotenv()
 
@@ -59,25 +58,28 @@ class DocumentorAgent(Agent):
 
     def __init__(
         self,
-        items: List[Any],
         agent_name: str = "DocumentorAgent",
         llm=model,
         max_loops: int = 1,
-        module: str = "docs/swarms/structs",
-        docs_folder_path: str = "docs/swarms/structs",
+        module: str = None,
+        docs_folder_path: str = None,
         *args,
         **kwargs,
     ):
-        super().__init__(
-            agent_name, llm=llm, max_loops=max_loops, *args, **kwargs
+        super(DocumentorAgent, self).__init__(
+            agent_name=agent_name,
+            llm=model,
+            max_loops=max_loops,
+            streaming_on=True,
+            *args,
+            **kwargs,
         )
-        self.items = items
         self.module = module
         self.agent_name = agent_name
         self.max_loops = max_loops
         self.docs_folder_path = docs_folder_path
 
-    def run(self, task: str, *args, **kwargs):
+    def run(self, task: str, *args, **kwargs) -> str:
         """
         Runs the DocumentorAgent for the specified task.
 
@@ -89,86 +91,16 @@ class DocumentorAgent(Agent):
         """
         logger.info(f"Running DocumentorAgent for task: {task}")
 
-        def process_item(item):
-            try:
-                prompt = self.fetch_docs(item)
-                logger.debug(
-                    f"Fetched docs for item: {item.__name__}"
-                )
-
-                processed_content = super().run(
-                    DOCUMENTATION_WRITER_SOP(
-                        prompt, self.module, *args, **kwargs
-                    )
-                )
-                logger.debug(
-                    f"Processed content for item: {item.__name__}"
-                )
-
-                doc_content = (
-                    f"# {item.__name__}\n\n{processed_content}\n"
-                )
-                file_path = self.create_file(item, doc_content)
-                logger.info(
-                    f"Documentation created for item: {item.__name__} at {file_path}"
-                )
-
-            except Exception as e:
-                logger.error(
-                    f"Error processing item {item.__name__}: {e}"
-                )
-
-        threads = []
-        for item in self.items:
-            thread = threading.Thread(
-                target=process_item, args=(item,)
+        processed_content = super().run(
+            DOCUMENTATION_WRITER_SOP(
+                task, self.module, *args, **kwargs
             )
-            threads.append(thread)
-            thread.start()
-
-        for thread in threads:
-            thread.join()
-
-    def fetch_docs(self, item):
-        """
-        Fetches the documentation and source code for the given item.
-
-        Args:
-            item: The item to fetch the documentation for.
-
-        Returns:
-            str: The fetched documentation and source code.
-
-        """
-        doc = inspect.getdoc(item)
-        source = inspect.getsource(item)
-        is_class = inspect.isclass(item)
-        item_type = "Class Name" if is_class else "Name"
-        input_content = f"{item_type}: {item.__name__}\n\nDocumentation:\n{doc}\n\nSource Code:\n{source}"
-        logger.debug(
-            f"Input content created for item: {item.__name__}"
         )
-        return input_content
 
-    def create_file(self, item, content: str = None):
-        """
-        Creates a documentation file for the given item.
+        logger.info(f"Documentation: {processed_content}")
 
-        Args:
-            item: The item to create the documentation file for.
-            content (str, optional): The content to be written in the file. Defaults to None.
+        doc_content = f"{processed_content}\n"
+        file_path = create_file(self.module, doc_content, ".py")
+        logger.info(f"Documentation created at {file_path}")
 
-        Returns:
-            str: The file path of the created documentation file.
-
-        """
-        os.makedirs(self.module, exist_ok=True)
-        file_path = os.path.join(
-            self.docs_folder_path, f"{item.__name__.lower()}.md"
-        )
-        with open(file_path, "w") as file:
-            file.write(content)
-        logger.debug(
-            f"File created at {file_path} for item: {item.__name__}"
-        )
-        return file_path
+        return processed_content

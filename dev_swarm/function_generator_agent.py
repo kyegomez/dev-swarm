@@ -2,8 +2,8 @@ from dev_swarm.documentor_agent import model
 from dev_swarm.prompts import FUNCTION_GENERATOR_PROMPT
 from swarms import Agent
 from loguru import logger
-import os
 from swarms import extract_code_from_markdown
+from dev_swarm.utils import create_file
 
 
 class FunctionGeneratorAgent(Agent):
@@ -53,8 +53,10 @@ class FunctionGeneratorAgent(Agent):
         autosave: bool = True,
         saved_state_path: str = "function_generator.json",
         stopping_token: str = "Stop!",
-        interactive: bool = True,
+        interactive: bool = False,
         context_length: int = 8000,
+        folder_path: str = None,
+        *args,
         **kwargs,
     ):
         super().__init__(
@@ -67,14 +69,15 @@ class FunctionGeneratorAgent(Agent):
             stopping_token=stopping_token,
             interactive=interactive,
             context_length=context_length,
+            streaming_on=True,
+            *args,
             **kwargs,
         )
+        self.folder_path = folder_path
 
     def run(
         self,
         task: str,
-        folder_path: str,
-        file_name: str,
         *args,
         **kwargs,
     ) -> str:
@@ -96,30 +99,11 @@ class FunctionGeneratorAgent(Agent):
         logger.info(
             f"Running FunctionGeneratorAgent for task: {task}"
         )
-        output = super().run(task, *args, **kwargs)
-        output = extract_code_from_markdown(output)
+        response = super().run(task, *args, **kwargs)
+        output = extract_code_from_markdown(response)
         logger.debug(f"Generated output: {output}")
-        file_path = self.create_file(output, folder_path, file_name)
-        return file_path
 
-    def create_file(
-        self, content: str, folder_path: str, file_name: str
-    ) -> str:
-        """
-        Creates a file with the given content in the specified folder path with the given file name.
-        Returns the path of the created file.
+        logger.info("Creating file for generated code")
+        create_file(output, self.folder_path, "main.py")
 
-        Args:
-            content (str): Content to be written to the file.
-            folder_path (str): Path of the folder where the file should be created.
-            file_name (str): Name of the file to be created.
-
-        Returns:
-            str: Path of the created file.
-        """
-        os.makedirs(folder_path, exist_ok=True)
-        file_path = os.path.join(folder_path, file_name)
-        with open(file_path, "w") as file:
-            file.write(content)
-        logger.info(f"File created at {file_path}")
-        return file_path
+        return response
